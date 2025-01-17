@@ -2,7 +2,6 @@
 # pylint: disable=too-many-lines
 
 import logging
-import re
 import uuid
 from urllib.parse import urlparse
 
@@ -34,16 +33,6 @@ from .filters import DocumentFilter
 
 logger = logging.getLogger(__name__)
 
-ATTACHMENTS_FOLDER = "attachments"
-UUID_REGEX = (
-    r"[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"
-)
-FILE_EXT_REGEX = r"\.[a-zA-Z]{3,4}"
-MEDIA_STORAGE_URL_PATTERN = re.compile(
-    f"{settings.MEDIA_URL:s}(?P<pk>{UUID_REGEX:s})/"
-    f"(?P<key>{ATTACHMENTS_FOLDER:s}/{UUID_REGEX:s}{FILE_EXT_REGEX:s})$"
-)
-COLLABORATION_WS_URL_PATTERN = re.compile(rf"(?:^|&)room=(?P<pk>{UUID_REGEX})(?:&|$)")
 
 # pylint: disable=too-many-ancestors
 
@@ -915,7 +904,7 @@ class DocumentViewSet(
         # Generate a generic yet unique filename to store the image in object storage
         file_id = uuid.uuid4()
         extension = serializer.validated_data["expected_extension"]
-        key = f"{document.key_base}/{ATTACHMENTS_FOLDER:s}/{file_id!s}.{extension:s}"
+        key = f"{document.key_base}/{enums.ATTACHMENTS_FOLDER:s}/{file_id!s}.{extension:s}"
 
         # Prepare metadata for storage
         extra_args = {
