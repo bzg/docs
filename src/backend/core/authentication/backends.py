@@ -10,10 +10,23 @@ import requests
 from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as MozillaOIDCAuthenticationBackend,
 )
+from mozilla_django_oidc.utils import import_from_settings
 
 from core.models import DuplicateEmailError, User
 
 logger = logging.getLogger(__name__)
+
+
+def store_tokens(session, access_token, id_token, refresh_token):
+    """Store tokens in the session if enabled in settings."""
+    if import_from_settings("OIDC_STORE_ACCESS_TOKEN", False):
+        session["oidc_access_token"] = access_token
+
+    if import_from_settings("OIDC_STORE_ID_TOKEN", False):
+        session["oidc_id_token"] = id_token
+
+    if import_from_settings("OIDC_STORE_REFRESH_TOKEN", False):
+        session["oidc_refresh_token"] = refresh_token
 
 
 class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
