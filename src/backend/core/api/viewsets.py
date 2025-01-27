@@ -993,8 +993,10 @@ class DocumentViewSet(
         annotation. The request will then be proxied to the object storage backend who will
         respond with the file after checking the signature included in headers.
         """
-        url = self._auth_get_original_url(request)
-        url_params = self._auth_get_url_params(MEDIA_STORAGE_URL_PATTERN, url.path)
+        parsed_url = self._auth_get_original_url(request)
+        url_params = self._auth_get_url_params(
+            enums.MEDIA_STORAGE_URL_PATTERN, parsed_url.path
+        )
         document = self._auth_get_document(url_params["pk"])
 
         if not document.get_abilities(request.user).get(self.action, False):
@@ -1018,8 +1020,10 @@ class DocumentViewSet(
         This view is used by an Nginx subrequest to control access to a document's
         collaboration server.
         """
-        url = self._auth_get_original_url(request)
-        url_params = self._auth_get_url_params(COLLABORATION_WS_URL_PATTERN, url.query)
+        parsed_url = self._auth_get_original_url(request)
+        url_params = self._auth_get_url_params(
+            enums.COLLABORATION_WS_URL_PATTERN, parsed_url.query
+        )
         document = self._auth_get_document(url_params["pk"])
 
         abilities = document.get_abilities(request.user)
