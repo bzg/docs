@@ -103,7 +103,7 @@ def test_api_documents_media_auth_anonymous_attachments():
     """
     Declaring a media key as original attachment on a document to which
     a user has access should give them access to the attachment file
-    regarless of their access rights on the original document.
+    regardless of their access rights on the original document.
     """
     document_id = uuid4()
     filename = f"{uuid4()!s}.jpg"

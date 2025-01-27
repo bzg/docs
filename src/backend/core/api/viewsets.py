@@ -772,7 +772,9 @@ class DocumentViewSet(
         Optionally duplicates accesses if `with_accesses` is set to true
         in the payload.
         """
-        serializer = serializers.DocumentDuplicationSerializer(data=request.GET)
+        serializer = serializers.DocumentDuplicationSerializer(
+            data=request.query_params
+        )
         serializer.is_valid(raise_exception=True)
         with_accesses = serializer.validated_data["with_accesses"]
 
