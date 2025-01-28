@@ -17,6 +17,12 @@ from core.models import DuplicateEmailError, User
 logger = logging.getLogger(__name__)
 
 
+def store_oidc_refresh_token(session, refresh_token):
+    """Store the OIDC refresh token in the session if enabled in settings."""
+    if import_from_settings("OIDC_STORE_REFRESH_TOKEN", False):
+        session["oidc_refresh_token"] = refresh_token
+
+
 def store_tokens(session, access_token, id_token, refresh_token):
     """Store tokens in the session if enabled in settings."""
     if import_from_settings("OIDC_STORE_ACCESS_TOKEN", False):
@@ -25,8 +31,7 @@ def store_tokens(session, access_token, id_token, refresh_token):
     if import_from_settings("OIDC_STORE_ID_TOKEN", False):
         session["oidc_id_token"] = id_token
 
-    if import_from_settings("OIDC_STORE_REFRESH_TOKEN", False):
-        session["oidc_refresh_token"] = refresh_token
+    store_oidc_refresh_token(session, refresh_token)
 
 
 class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
@@ -35,6 +40,40 @@ class OIDCAuthenticationBackend(MozillaOIDCAuthenticationBackend):
     This class overrides the default OIDC Authentication Backend to accommodate differences
     in the User and Identity models, and handles signed and/or encrypted UserInfo response.
     """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Initialize the OIDC Authentication Backend.
+
+        Adds an internal attribute to store the token_info dictionary.
+        The purpose of `self._token_info` is to not duplicate code from
+        the original `authenticate` method.
+        This won't be needed after https://github.com/mozilla/mozilla-django-oidc/pull/377
+        is merged.
+        """
+        super().__init__(*args, **kwargs)
+        self._token_info = None
+
+    def get_token(self, payload):
+        """
+        Return token object as a dictionary.
+
+        Store the value to extract the refresh token in the `authenticate` method.
+        """
+        self._token_info = super().get_token(payload)
+        return self._token_info
+
+    def authenticate(self, request, **kwargs):
+        """Authenticates a user based on the OIDC code flow."""
+        user = super().authenticate(request, **kwargs)
+
+        if user is not None:
+            # Then the user successfully authenticated
+            store_oidc_refresh_token(
+                request.session, self._token_info.get("refresh_token")
+            )
+
+        return user
 
     def get_userinfo(self, access_token, id_token, payload):
         """Return user details dictionary.
