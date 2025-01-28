@@ -10,12 +10,35 @@ from django.test.utils import override_settings
 
 import pytest
 import responses
+from cryptography.fernet import Fernet
 
 from core import models
-from core.authentication.backends import OIDCAuthenticationBackend
+from core.authentication.backends import (
+    OIDCAuthenticationBackend,
+    get_oidc_refresh_token,
+    store_oidc_refresh_token,
+)
 from core.factories import UserFactory
 
 pytestmark = pytest.mark.django_db
+
+
+def test_oidc_refresh_token_session_store(settings):
+    """Test that the OIDC refresh token is stored and retrieved from the session."""
+    session = {}
+
+    with pytest.raises(
+        ValueError, match="OIDC_STORE_REFRESH_TOKEN_KEY setting is required."
+    ):
+        store_oidc_refresh_token(session, "test-refresh-token")
+
+    settings.OIDC_STORE_REFRESH_TOKEN_KEY = Fernet.generate_key()
+
+    store_oidc_refresh_token(session, "test-refresh-token")
+    assert session["oidc_refresh_token"] is not None
+    assert session["oidc_refresh_token"] != "test-refresh-token"
+
+    assert get_oidc_refresh_token(session) == "test-refresh-token"
 
 
 def test_authentication_getter_existing_user_no_email(
@@ -561,6 +584,7 @@ def test_authentication_session_tokens(
     settings.OIDC_OP_JWKS_ENDPOINT = "http://oidc.endpoint.test/jwks"
     settings.OIDC_STORE_ACCESS_TOKEN = True
     settings.OIDC_STORE_REFRESH_TOKEN = True
+    settings.OIDC_STORE_REFRESH_TOKEN_KEY = Fernet.generate_key()
 
     klass = OIDCAuthenticationBackend()
     request = rf.get("/some-url", {"state": "test-state", "code": "test-code"})
@@ -598,4 +622,4 @@ def test_authentication_session_tokens(
 
     assert user is not None
     assert request.session["oidc_access_token"] == "test-access-token"
-    assert request.session["oidc_refresh_token"] == "test-refresh-token"
+    assert get_oidc_refresh_token(request.session) == "test-refresh-token"

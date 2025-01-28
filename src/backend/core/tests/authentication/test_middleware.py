@@ -11,8 +11,10 @@ from django.test import RequestFactory
 import pytest
 import requests.exceptions
 import responses
+from cryptography.fernet import Fernet
 
 from core import factories
+from core.authentication.backends import get_oidc_refresh_token
 from core.authentication.middleware import RefreshOIDCAccessToken
 
 pytestmark = pytest.mark.django_db
@@ -108,6 +110,7 @@ def test_basic_auth_disabled(oidc_settings):  # pylint: disable=unused-argument
 @responses.activate
 def test_successful_token_refresh(oidc_settings):  # pylint: disable=unused-argument
     """Test that the middleware successfully refreshes the token."""
+    oidc_settings.OIDC_STORE_REFRESH_TOKEN_KEY = Fernet.generate_key()
     user = factories.UserFactory()
 
     request = RequestFactory().get("/test")
@@ -135,7 +138,7 @@ def test_successful_token_refresh(oidc_settings):  # pylint: disable=unused-argu
 
     assert response is None
     assert request.session["oidc_access_token"] == "new_token"
-    assert request.session["oidc_refresh_token"] == "new_refresh_token"
+    assert get_oidc_refresh_token(request.session) == "new_refresh_token"
 
 
 def test_non_expired_token(oidc_settings):  # pylint: disable=unused-argument

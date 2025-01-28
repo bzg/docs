@@ -1,12 +1,14 @@
 """Authentication Backends for the Impress core app."""
 
 import logging
+from functools import lru_cache
 
 from django.conf import settings
 from django.core.exceptions import SuspiciousOperation
 from django.utils.translation import gettext_lazy as _
 
 import requests
+from cryptography.fernet import Fernet
 from mozilla_django_oidc.auth import (
     OIDCAuthenticationBackend as MozillaOIDCAuthenticationBackend,
 )
@@ -17,10 +19,28 @@ from core.models import DuplicateEmailError, User
 logger = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=0)
+def get_cipher_suite():
+    """Return a Fernet cipher suite."""
+    key = import_from_settings("OIDC_STORE_REFRESH_TOKEN_KEY", None)
+    if not key:
+        raise ValueError("OIDC_STORE_REFRESH_TOKEN_KEY setting is required.")
+    return Fernet(key)
+
+
 def store_oidc_refresh_token(session, refresh_token):
-    """Store the OIDC refresh token in the session if enabled in settings."""
+    """Store the encrypted OIDC refresh token in the session if enabled in settings."""
     if import_from_settings("OIDC_STORE_REFRESH_TOKEN", False):
-        session["oidc_refresh_token"] = refresh_token
+        encrypted_token = get_cipher_suite().encrypt(refresh_token.encode())
+        session["oidc_refresh_token"] = encrypted_token.decode()
+
+
+def get_oidc_refresh_token(session):
+    """Retrieve and decrypt the OIDC refresh token from the session."""
+    encrypted_token = session.get("oidc_refresh_token")
+    if encrypted_token:
+        return get_cipher_suite().decrypt(encrypted_token.encode()).decode()
+    return None
 
 
 def store_tokens(session, access_token, id_token, refresh_token):
