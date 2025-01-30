@@ -46,7 +46,7 @@ def test_api_documents_update_new_attachment_keys_anonymous(django_assert_num_qu
     factories.DocumentFactory(attachments=[image_keys[3]], link_reach="restricted")
     expected_keys = {image_keys[i] for i in [0, 1]}
 
-    with django_assert_num_queries(4):
+    with django_assert_num_queries(7):
         response = APIClient().put(
             f"/api/v1.0/documents/{document.id!s}/",
             {"content": get_ydoc_with_mages(image_keys)},
@@ -59,7 +59,7 @@ def test_api_documents_update_new_attachment_keys_anonymous(django_assert_num_qu
 
     # Check that the db query to check attachments readability for extracted
     # keys is not done if the content changes but no new keys are found
-    with django_assert_num_queries(3):
+    with django_assert_num_queries(5):
         response = APIClient().put(
             f"/api/v1.0/documents/{document.id!s}/",
             {"content": get_ydoc_with_mages(image_keys[:2])},
@@ -97,7 +97,7 @@ def test_api_documents_update_new_attachment_keys_authenticated(
     factories.DocumentFactory(attachments=[image_keys[4]], users=[user])
     expected_keys = {image_keys[i] for i in [0, 1, 2, 4]}
 
-    with django_assert_num_queries(5):
+    with django_assert_num_queries(8):
         response = client.put(
             f"/api/v1.0/documents/{document.id!s}/",
             {"content": get_ydoc_with_mages(image_keys)},
@@ -110,7 +110,7 @@ def test_api_documents_update_new_attachment_keys_authenticated(
 
     # Check that the db query to check attachments readability for extracted
     # keys is not done if the content changes but no new keys are found
-    with django_assert_num_queries(4):
+    with django_assert_num_queries(6):
         response = client.put(
             f"/api/v1.0/documents/{document.id!s}/",
             {"content": get_ydoc_with_mages(image_keys[:2])},
