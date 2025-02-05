@@ -26,11 +26,10 @@ export const DocTree = ({ docId }: Props) => {
   const {
     selectedNode,
     setSelectedNode,
+    refreshNode,
     setTreeData: setTreeDataStore,
     treeData: treeDataStore,
   } = useTreeStore();
-
-  console.log('treeDataStore', treeDataStore);
 
   const { data, isLoading, isFetching, isRefetching } = useInfiniteDocChildren({
     docId,
@@ -42,8 +41,7 @@ export const DocTree = ({ docId }: Props) => {
     result: TreeViewMoveResult,
     newTreeData: TreeViewDataType<Doc>[],
   ) => {
-    setTreeDataStore(newTreeData);
-    const { targetNodeId, mode: position, sourceNodeId } = result;
+    const { targetNodeId, mode: position, sourceNodeId, oldParentId } = result;
     await fetchAPI(`documents/${sourceNodeId}/move/`, {
       method: 'POST',
       body: JSON.stringify({
@@ -51,6 +49,12 @@ export const DocTree = ({ docId }: Props) => {
         position,
       }),
     });
+
+    setTreeDataStore(newTreeData);
+    if (oldParentId) {
+      refreshNode(oldParentId);
+    }
+    refreshNode(targetNodeId);
   };
 
   useEffect(() => {
@@ -68,7 +72,6 @@ export const DocTree = ({ docId }: Props) => {
     setTreeDataStore(newData);
   }, [data, setTreeDataStore, docId]);
 
-  console.log('selectedNode', selectedNode, rootNode);
   const isRootNodeSelected = !selectedNode
     ? true
     : selectedNode?.id === rootNode?.id;

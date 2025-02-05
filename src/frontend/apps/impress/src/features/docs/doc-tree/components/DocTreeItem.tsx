@@ -1,36 +1,34 @@
+import { useModal } from '@openfun/cunningham-react';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { NodeRendererProps } from 'react-arborist';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { css } from 'styled-components';
 
-import { Box, BoxButton, Icon, StyledLink, Text } from '@/components';
+import { Box, BoxButton, DropdownMenu, Icon } from '@/components';
 import { TreeViewNode } from '@/components/common/tree/TreeView';
 import { useTreeStore } from '@/components/common/tree/treeStore';
 import { useCunninghamTheme } from '@/cunningham';
 import { useLeftPanelStore } from '@/features/left-panel';
 
+import { ModalRemoveDoc } from '../../doc-management';
+import { ModalRenameDoc } from '../../doc-management/components/ModalRenameDoc';
+import { DocShareModal } from '../../doc-share';
+import { LightDocItem } from '../../docs-grid/components/LightDocItem';
 import { useCreateChildrenDoc } from '../api/useCreateChildren';
 import { useDocChildren } from '../api/useDocChildren';
 import { TreeViewDataType } from '../types/tree';
 
-import Logo from './../assets/doc-s.svg';
 import { DocTreeDataType } from './DocTree';
-
-const ItemTextCss = css`
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: initial;
-  display: -webkit-box;
-  line-clamp: 1;
-  width: 100%;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-`;
 
 type DocTreeItemProps = NodeRendererProps<TreeViewDataType<DocTreeDataType>>;
 
 export const DocTreeItem = ({ node, ...props }: DocTreeItemProps) => {
   const data = node.data;
+  const deleteModal = useModal();
+  const shareModal = useModal();
+  const renameModal = useModal();
+  const [isOpen, setIsOpen] = useState(false);
   const { updateNode, setSelectedNode } = useTreeStore();
   const { spacingsTokens } = useCunninghamTheme();
   const { refetch } = useDocChildren(
@@ -86,67 +84,72 @@ export const DocTreeItem = ({ node, ...props }: DocTreeItemProps) => {
     return newChilds;
   };
 
+  const options = [
+    {
+      label: t('Rename'),
+      icon: 'edit',
+      callback: renameModal.open,
+    },
+    {
+      label: t('Share'),
+      icon: 'group',
+      callback: shareModal.open,
+    },
+    {
+      label: t('Delete'),
+      icon: 'delete',
+      callback: deleteModal.open,
+    },
+  ];
   return (
-    <TreeViewNode node={node} {...props} loadChildren={loadChildren}>
-      <StyledLink
-        onClick={() => {
-          setSelectedNode(node.data);
-        }}
-        href={`/docs/${node.id}`}
-        $css={css`
-          width: 100%;
-        `}
+    <>
+      <TreeViewNode
+        onClick={() => router.push(`/docs/${node.data.id}`)}
+        node={node}
+        {...props}
+        loadChildren={loadChildren}
       >
-        <Box
-          $width="100%"
-          $direction="row"
-          $gap={spacing['xs']}
-          $align="center"
-          $css={css`
-            .tree-item-actions {
-              display: none;
-            }
-            &:hover {
-              .tree-item-actions {
-                display: flex;
-              }
-            }
-          `}
-        >
-          <Box $width={16} $height={16}>
-            <Logo />
-          </Box>
-
-          <Text $css={ItemTextCss} $size="sm">
-            {data.title}
-          </Text>
-          <Box
-            $direction="row"
-            $gap={spacing['xs']}
-            $align="center"
-            className="tree-item-actions"
-          >
-            <BoxButton
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                createChildrenDoc({
-                  title: t('Untitled page'),
-                  parentId: node.id,
-                });
-              }}
-              color="primary-text"
-            >
-              <Icon
-                $variation="800"
-                $theme="primary"
-                isFilled
-                iconName="add_box"
-              />
-            </BoxButton>
-          </Box>
-        </Box>
-      </StyledLink>
-    </TreeViewNode>
+        <LightDocItem
+          showActions={isOpen}
+          doc={node.data}
+          rightContent={
+            <Box $direction="row" $gap={spacing['xs']} $align="center">
+              <DropdownMenu options={options} afterOpenChange={setIsOpen}>
+                <Icon iconName="more_horiz" $theme="primary" $variation="600" />
+              </DropdownMenu>
+              <BoxButton
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  createChildrenDoc({
+                    title: t('Untitled page'),
+                    parentId: node.id,
+                  });
+                }}
+                color="primary-text"
+              >
+                <Icon
+                  $variation="800"
+                  $theme="primary"
+                  isFilled
+                  iconName="add_box"
+                />
+              </BoxButton>
+            </Box>
+          }
+        />
+      </TreeViewNode>
+      {deleteModal.isOpen && (
+        <ModalRemoveDoc onClose={deleteModal.onClose} doc={node.data} />
+      )}
+      {shareModal.isOpen && (
+        <DocShareModal doc={node.data} onClose={shareModal.close} />
+      )}
+      {renameModal.isOpen &&
+        createPortal(
+          <ModalRenameDoc onClose={renameModal.onClose} doc={node.data} />,
+          document.getElementById('modals') as HTMLElement,
+        )}
+    </>
   );
 };

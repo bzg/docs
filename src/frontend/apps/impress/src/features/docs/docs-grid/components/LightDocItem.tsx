@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { css } from 'styled-components';
 
-import { Box, StyledLink, Text } from '@/components';
+import { Box, Text } from '@/components';
 import { useCunninghamTheme } from '@/cunningham';
 import { Doc } from '@/features/docs/doc-management';
 
@@ -20,53 +20,51 @@ const ItemTextCss = css`
 
 type Props = {
   doc: Doc;
+  showActions?: boolean;
   rightContent?: ReactNode;
 };
 
-export const LightDocItem = ({ doc, rightContent }: Props) => {
+export const LightDocItem = ({
+  doc,
+  rightContent,
+  showActions = false,
+}: Props) => {
   const { spacingsTokens } = useCunninghamTheme();
   const spacing = spacingsTokens();
   return (
-    <StyledLink
-      href={`/docs/${doc.id}`}
+    <Box
+      $width="100%"
+      $direction="row"
+      $gap={spacing['xs']}
+      $align="center"
       $css={css`
-        width: 100%;
+        .light-doc-item-actions {
+          display: ${showActions ? 'flex' : 'none'};
+        }
+        &:hover {
+          .light-doc-item-actions {
+            display: flex;
+          }
+        }
       `}
     >
-      <Box
-        $width="100%"
-        $direction="row"
-        $gap={spacing['xs']}
-        $align="center"
-        $css={css`
-          .light-doc-item-actions {
-            display: none;
-          }
-          &:hover {
-            .light-doc-item-actions {
-              display: flex;
-            }
-          }
-        `}
-      >
-        <Box $width={16} $height={16}>
-          <Logo />
-        </Box>
-
-        <Text $css={ItemTextCss} $size="sm">
-          {doc.title}
-        </Text>
-        {rightContent && (
-          <Box
-            $direction="row"
-            $gap={spacing['xs']}
-            $align="center"
-            className="light-doc-item-actions"
-          >
-            {rightContent}
-          </Box>
-        )}
+      <Box $width={16} $height={16}>
+        <Logo />
       </Box>
-    </StyledLink>
+
+      <Text $css={ItemTextCss} $size="sm">
+        {doc.title}
+      </Text>
+      {rightContent && (
+        <Box
+          $direction="row"
+          $gap={spacing['xs']}
+          $align="center"
+          className="light-doc-item-actions"
+        >
+          {rightContent}
+        </Box>
+      )}
+    </Box>
   );
 };

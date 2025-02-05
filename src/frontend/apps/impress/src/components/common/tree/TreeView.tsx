@@ -224,6 +224,7 @@ export const TreeView = <T,>({
       indent={20}
       width={width}
       selection={selectedNodeId}
+      disableEdit={true}
       rowHeight={32}
       overscanCount={20}
       padding={25}
@@ -249,11 +250,13 @@ function Cursor({ top, left }: CursorProps) {
 
 export type TreeViewNodeProps<T> = NodeRendererProps<TreeViewDataType<T>> & {
   children: ReactNode;
+  onClick?: () => void;
   loadChildren?: (node?: TreeViewDataType<T>) => Promise<TreeViewDataType<T>[]>;
 };
 
 export const TreeViewNode = <T,>({
   children,
+  onClick,
   node,
   dragHandle,
   style,
@@ -297,9 +300,12 @@ export const TreeViewNode = <T,>({
       clearTimeout(timeoutRef.current);
     }
   }, [node, handleClick]);
-
   return (
     <div
+      onClick={onClick}
+      onKeyDown={onClick}
+      role="button"
+      tabIndex={0}
       className={clsx(styles.node, {
         [styles.willReceiveDrop]: node.willReceiveDrop,
         [styles.selected]: node.isSelected,

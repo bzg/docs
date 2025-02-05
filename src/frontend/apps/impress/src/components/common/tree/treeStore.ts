@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { Doc } from '@/features/docs';
+import { Doc, getDoc } from '@/features/docs';
 import { TreeViewDataType } from '@/features/docs/doc-tree/types/tree';
 
 interface TreeStore<T> {
@@ -12,10 +12,14 @@ interface TreeStore<T> {
   addRootNode: (node: TreeViewDataType<T>) => void;
   removeNode: (nodeId: string) => void;
   addChildNode: (parentId: string, newNode: TreeViewDataType<T>) => void;
+  refreshNode: (nodeId: string) => void;
+  findNode: (nodeId: string) => TreeViewDataType<T> | null;
 }
 
-export const createTreeStore = <T>() =>
-  create<TreeStore<T>>((set) => ({
+export const createTreeStore = <T>(
+  refreshCallback?: (id: string) => Promise<Partial<TreeViewDataType<T>>>,
+) =>
+  create<TreeStore<T>>((set, get) => ({
     treeData: [],
     selectedNode: null,
     setSelectedNode: (node) => {
@@ -24,7 +28,22 @@ export const createTreeStore = <T>() =>
     setTreeData: (data) => {
       set({ treeData: data });
     },
-
+    refreshNode: (nodeId) => {
+      set((state) => {
+        const node = state.findNode(nodeId);
+        if (!node) {
+          return state;
+        }
+        refreshCallback?.(nodeId)
+          .then((data) => {
+            state.updateNode(nodeId, { ...node, ...data });
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+        return state;
+      });
+    },
     updateNode: (nodeId, newData) => {
       set((state) => {
         const updateNodeInTree = (
@@ -107,8 +126,32 @@ export const createTreeStore = <T>() =>
         };
       });
     },
+
+    findNode: (nodeId) => {
+      const findNodeInTree = (
+        nodes: TreeViewDataType<T>[],
+      ): TreeViewDataType<T> | null => {
+        for (const node of nodes) {
+          if (node.id === nodeId) {
+            return node;
+          }
+          if (node.children) {
+            const found = findNodeInTree(node.children);
+            if (found) {
+              return found;
+            }
+          }
+        }
+        return null;
+      };
+
+      return findNodeInTree(get().treeData);
+    },
   }));
 
 // Créer une instance du store
 // export const useTreeStore = createTreeStore();
-export const useTreeStore = createTreeStore<Doc>();
+export const useTreeStore = createTreeStore<Doc>(async (docId) => {
+  const doc = await getDoc({ id: docId });
+  return { ...doc, childrenCount: doc.numchild };
+});
