@@ -6,12 +6,12 @@ import {
   HocuspocusProvider,
   HocuspocusProviderConfiguration,
   onOutgoingMessageParameters,
+  onStatusParameters,
 } from '@hocuspocus/provider';
 import type { CloseEvent, MessageEvent } from 'ws';
 import * as Y from 'yjs';
 
 import { isAPIError } from '@/api';
-import { isFirefox } from '@/utils';
 
 import {
   pollOutgoingMessageRequest,
@@ -48,7 +48,7 @@ export class CollaborationProvider extends HocuspocusProvider {
   public websocketMaxFailureCount = 2;
 
   public constructor(configuration: CollaborationProviderConfiguration) {
-    const withWS = isFirefox();
+    const withWS = false;
 
     let url = '';
     if (isHocuspocusProviderConfigurationUrl(configuration)) {
@@ -69,6 +69,11 @@ export class CollaborationProvider extends HocuspocusProvider {
       'connect',
       this.onWebsocketConnect.bind(this),
     );
+
+    this.configuration.websocketProvider.on(
+      'disconnect',
+      this.onWebsocketDisconnect.bind(this),
+    );
   }
 
   public setPollDefaultValues(): void {
@@ -88,6 +93,16 @@ export class CollaborationProvider extends HocuspocusProvider {
   public onWebsocketConnect = () => {
     this.setPollDefaultValues();
   };
+
+  public onWebsocketDisconnect = () => {
+    console.log('disconnect');
+  };
+
+  public onStatus({ status }: onStatusParameters) {
+    console.log('status:', status);
+
+    super.onStatus({ status });
+  }
 
   public onClose(event: CloseEvent): void {
     this.isAuthenticated = false;
