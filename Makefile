@@ -125,12 +125,10 @@ run-backend: ## Start only the backend application and all needed services
 	@$(COMPOSE) up --force-recreate -d nginx
 .PHONY: run-back
 
-run-frontend: ## Start only the frontend application
-	@$(COMPOSE) up --force-recreate -d frontend-dev
-.PHONY: run-frontend
-
 run: ## start the wsgi (production) and development server
-run: run-backend run-frontend
+run: 
+	@$(MAKE) run-backend
+	@$(COMPOSE) up --force-recreate -d frontend-dev
 .PHONY: run
 
 status: ## an alias for "docker compose ps"
