@@ -105,6 +105,7 @@ export class CollaborationProvider extends HocuspocusProvider {
   }
 
   public onClose(event: CloseEvent): void {
+    console.log('close:', event);
     this.isAuthenticated = false;
     this.synced = false;
 
