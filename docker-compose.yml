@@ -166,6 +166,8 @@ services:
       - env.d/development/common
     ports:
       - "4444:4444"
+    volumes:
+      - ./src/frontend/servers/y-provider:/home/frontend/servers/y-provider
 
   kc_postgresql:
     image: postgres:14.3

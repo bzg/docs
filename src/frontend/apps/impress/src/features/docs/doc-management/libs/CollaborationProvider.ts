@@ -11,6 +11,7 @@ import type { CloseEvent, MessageEvent } from 'ws';
 import * as Y from 'yjs';
 
 import { isAPIError } from '@/api';
+import { isFirefox } from '@/utils';
 
 import {
   pollOutgoingMessageRequest,
@@ -47,10 +48,12 @@ export class CollaborationProvider extends HocuspocusProvider {
   public websocketMaxFailureCount = 2;
 
   public constructor(configuration: CollaborationProviderConfiguration) {
+    const withWS = isFirefox();
+
     let url = '';
     if (isHocuspocusProviderConfigurationUrl(configuration)) {
       url = configuration.url;
-      configuration.url = configuration.url;
+      configuration.url = !withWS ? 'ws://localhost:6666' : configuration.url;
     }
 
     super(configuration);
