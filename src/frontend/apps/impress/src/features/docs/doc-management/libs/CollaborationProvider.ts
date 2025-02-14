@@ -203,6 +203,11 @@ export class CollaborationProvider extends HocuspocusProvider {
 
     this.sse.onerror = (err) => {
       console.error('SSE error:', err);
+      this.sse?.close();
+
+      setTimeout(() => {
+        this.initCollaborationSSE();
+      }, 5000);
     };
   }
 
